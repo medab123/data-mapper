@@ -13,7 +13,7 @@ final class ValueTransformer
     private array $transformers = [];
 
     /** @var array<string> Array transformer names that should handle empty values */
-    private const ARRAY_TRANSFORMERS = ['array_join', 'array_first'];
+    private const array ARRAY_TRANSFORMERS = ['array_join', 'array_first'];
 
     public function __construct()
     {
