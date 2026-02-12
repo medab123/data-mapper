@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "illuminate/support": "^12.0",
         "spatie/laravel-data": "^4.19"
     },
@@ -21,18 +21,18 @@
     },
     "autoload": {
         "psr-4": {
-            "Elaitech\\\\DataMapper\\\\": "src/"
+            "Elaitechx\\DataMapper\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Elaitech\\\\DataMapper\\\\Tests\\\\": "tests/"
+            "Elaitech\\DataMapper\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Elaitech\\\\DataMapper\\\\DataMapperServiceProvider"
+                "Elaitech\\DataMapper\\DataMapperServiceProvider"
             ]
         }
     },
