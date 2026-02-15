@@ -21,7 +21,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Elaitechx\\DataMapper\\": "src/"
+            "Elaitech\\DataMapper\\": "src/"
         }
     },
     "autoload-dev": {
