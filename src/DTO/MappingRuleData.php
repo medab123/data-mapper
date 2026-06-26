@@ -29,13 +29,14 @@ final class MappingRuleData extends Data
         $normalizedValueMapping = [];
         if ($valueMapping) {
             foreach ($valueMapping as $key => $value) {
-                if (array_key_exists('from', $value)) {
-                    $normalizedValueMapping[$value['from']] = $value['to'];
+                // Two accepted shapes: a list of {from,to} maps, or a flat
+                // [from => to] map. Guard array_key_exists against scalar entries.
+                if (is_array($value) && array_key_exists('from', $value)) {
+                    $normalizedValueMapping[$value['from']] = $value['to'] ?? null;
                 } else {
                     $normalizedValueMapping[$key] = $value;
                 }
             }
-
         }
 
         return $normalizedValueMapping;

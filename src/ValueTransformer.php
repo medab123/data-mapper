@@ -6,6 +6,15 @@ namespace Elaitech\DataMapper;
 
 use Elaitech\DataMapper\Contracts\TransformerInterface;
 use Elaitech\DataMapper\DTO\MappingRuleData;
+use Elaitech\DataMapper\Transformers\ArrayFirstTransformer;
+use Elaitech\DataMapper\Transformers\ArrayJoinTransformer;
+use Elaitech\DataMapper\Transformers\BooleanTransformer;
+use Elaitech\DataMapper\Transformers\DateTransformer;
+use Elaitech\DataMapper\Transformers\IntegerTransformer;
+use Elaitech\DataMapper\Transformers\LowerTransformer;
+use Elaitech\DataMapper\Transformers\NoneTransformer;
+use Elaitech\DataMapper\Transformers\TrimTransformer;
+use Elaitech\DataMapper\Transformers\UpperTransformer;
 
 final class ValueTransformer
 {
@@ -82,6 +91,13 @@ final class ValueTransformer
                 return $transformer->transform($value, $rule->format, $rule->defaultValue);
             }
 
+            // Coerce a *provided* default through the transformer for type
+            // consistency (e.g. default '5' + int => 5). A null default stays
+            // null so empty optional fields are not turned into 0/0.0/etc.
+            if ($transformer !== null && $rule->defaultValue !== null && $rule->defaultValue !== '') {
+                return $transformer->transform($rule->defaultValue, $rule->format, $rule->defaultValue);
+            }
+
             return $rule->defaultValue;
         }
 
@@ -130,15 +146,15 @@ final class ValueTransformer
 
     private function registerBuiltInTransformers(): void
     {
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\NoneTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\TrimTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\UpperTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\LowerTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\IntegerTransformer);
+        $this->registerTransformer(new NoneTransformer);
+        $this->registerTransformer(new TrimTransformer);
+        $this->registerTransformer(new UpperTransformer);
+        $this->registerTransformer(new LowerTransformer);
+        $this->registerTransformer(new IntegerTransformer);
         $this->registerTransformer(new Transformers\FloatTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\BooleanTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\DateTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\ArrayFirstTransformer);
-        $this->registerTransformer(new \Elaitech\DataMapper\Transformers\ArrayJoinTransformer);
+        $this->registerTransformer(new BooleanTransformer);
+        $this->registerTransformer(new DateTransformer);
+        $this->registerTransformer(new ArrayFirstTransformer);
+        $this->registerTransformer(new ArrayJoinTransformer);
     }
 }

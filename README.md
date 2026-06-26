@@ -120,7 +120,7 @@ $config = new MappingConfigurationData(
         new MappingRuleData(
             sourceField: 'age',
             targetField: 'user_age',
-            transformation: 'integer',
+            transformation: 'int',
         ),
     ]),
 );
@@ -208,9 +208,9 @@ $transformer->registerTransformer(new MyCustomTransformer());
 | `trim` | Trim | Remove leading/trailing whitespace | ❌ |
 | `upper` | Uppercase | Convert to UPPERCASE | ❌ |
 | `lower` | Lowercase | Convert to lowercase | ❌ |
-| `integer` | Integer | Cast to `int` | ❌ |
+| `int` | Integer | Cast to `int` (extracts digits from messy strings; falls back to default) | ❌ |
 | `float` | Float | Cast to `float` with precision control | ✅ (decimals) |
-| `boolean` | Boolean | Cast to `bool` (handles `"true"`, `"1"`, `"yes"`, etc.) | ❌ |
+| `bool` | Boolean | Cast to `bool` (handles `"true"`, `"1"`, `"yes"`, etc.) | ❌ |
 | `date` | Date | Parse and reformat dates | ✅ (date format) |
 | `array_first` | Array First | Extract first element from array | ❌ |
 | `array_join` | Array Join | Join array elements with separator | ✅ (separator) |

@@ -23,18 +23,24 @@ class DateTransformer implements TransformerInterface
         return 'Parse date string to DateTimeImmutable object';
     }
 
-    /**
-     * @throws \DateMalformedStringException
-     */
-    public function transform($value, ?string $format = null, $defaultValue = null): ?\DateTimeImmutable
+    public function transform($value, ?string $format = null, $defaultValue = null): mixed
     {
-        if ($format === null) {
-            return new \DateTimeImmutable((string) $value);
+        if ($value === null || $value === '') {
+            return $defaultValue;
         }
 
-        $date = \DateTimeImmutable::createFromFormat($format, (string) $value);
+        try {
+            if ($format === null) {
+                return new \DateTimeImmutable((string) $value);
+            }
 
-        return $date ?: null;
+            $date = \DateTimeImmutable::createFromFormat($format, (string) $value);
+
+            return $date ?: $defaultValue;
+        } catch (\Exception $e) {
+            // Unparseable date — fall back to the configured default instead of throwing.
+            return $defaultValue;
+        }
     }
 
     public function requiresFormat(): bool

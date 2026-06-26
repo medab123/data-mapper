@@ -20,8 +20,7 @@ final class DataMapperServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->app->singleton(ValueTransformer::class, static fn (): ValueTransformer => new ValueTransformer());
-        $this->app->singleton(FieldExtractor::class, static fn (): FieldExtractor => new FieldExtractor());
+        $this->app->singleton(ValueTransformer::class, static fn (): ValueTransformer => new ValueTransformer);
+        $this->app->singleton(FieldExtractor::class, static fn (): FieldExtractor => new FieldExtractor);
     }
 }
-

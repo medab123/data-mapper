@@ -36,33 +36,38 @@ final class FieldExtractor
      */
     public function extractArrayValues(array $data, string $fieldPath): array
     {
+        // No wildcard: single value extraction.
+        if (! str_contains($fieldPath, '.*.')) {
+            $value = $this->extractValue($data, $fieldPath);
+
+            return $value === null ? [] : [$value];
+        }
+
+        // Split on the FIRST wildcard only and recurse on the remainder, so
+        // multi-level paths like "items.*.variants.*.sku" are supported.
+        $pos = strpos($fieldPath, '.*.');
+        $arrayKey = substr($fieldPath, 0, $pos);
+        $rest = substr($fieldPath, $pos + 3);
+
+        $arrayData = $this->extractValue($data, $arrayKey);
+
         $values = [];
+        if (is_array($arrayData)) {
+            foreach ($arrayData as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
 
-        // Handle wildcard notation like "items.*.name" or "pricing.discounts.*.amount"
-        if (str_contains($fieldPath, '.*.')) {
-            $parts = explode('.*.', $fieldPath);
-            $arrayKey = $parts[0];
-            $subKey = $parts[1] ?? null;
-
-            // First, extract the array using dot notation
-            $arrayData = $this->extractValue($data, $arrayKey);
-
-            if (is_array($arrayData)) {
-                foreach ($arrayData as $item) {
-                    if (is_array($item)) {
-                        if ($subKey && isset($item[$subKey])) {
-                            $values[] = $item[$subKey];
-                        } elseif (! $subKey) {
-                            $values[] = $item;
-                        }
+                if (str_contains($rest, '.*.')) {
+                    foreach ($this->extractArrayValues($item, $rest) as $nested) {
+                        $values[] = $nested;
+                    }
+                } else {
+                    $value = $this->extractValue($item, $rest);
+                    if ($value !== null) {
+                        $values[] = $value;
                     }
                 }
-            }
-        } else {
-            // Handle single value extraction
-            $value = $this->extractValue($data, $fieldPath);
-            if ($value !== null) {
-                $values[] = $value;
             }
         }
 

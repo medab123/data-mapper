@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Elaitech\DataMapper;
 
+use Elaitech\DataMapper\Contracts\DataMapperInterface;
 use Elaitech\DataMapper\DTO\DataMappingResultData;
 use Elaitech\DataMapper\DTO\MappingConfigurationData;
 use Spatie\LaravelData\DataCollection;
-use Elaitech\DataMapper\Contracts\DataMapperInterface;
 
 final readonly class DataMapperService implements DataMapperInterface
 {
@@ -38,7 +38,14 @@ final readonly class DataMapperService implements DataMapperInterface
 
     private function isAssociativeArray(array $row): bool
     {
-        return array_keys($row) !== range(0, count($row) - 1);
+        // array_is_list() correctly treats [] as a (non-associative) list,
+        // avoiding the range(0, -1) edge case that misclassified empty rows.
+        return ! array_is_list($row);
+    }
+
+    private function isEmptyValue(mixed $value): bool
+    {
+        return $value === null || $value === '' || $value === [];
     }
 
     /**
@@ -51,8 +58,8 @@ final readonly class DataMapperService implements DataMapperInterface
         foreach ($mappingRules as $rule) {
             $value = $this->fieldExtractor->extractValueForMapping($row, $rule->sourceField);
 
-            if ($value === null && $rule->isRequired) {
-                throw new \InvalidArgumentException("Required field '{$rule->sourceField}' not found in data");
+            if ($rule->isRequired && $this->isEmptyValue($value)) {
+                throw new \InvalidArgumentException("Required field '{$rule->sourceField}' is missing or empty");
             }
 
             $mappedRow[$rule->targetField] = $this->valueTransformer->transform($value, $rule);
@@ -80,6 +87,11 @@ final readonly class DataMapperService implements DataMapperInterface
             }
 
             $value = $row[$sourceIndex] ?? null;
+
+            if ($rule->isRequired && $this->isEmptyValue($value)) {
+                throw new \InvalidArgumentException("Required field '{$rule->sourceField}' is missing or empty");
+            }
+
             $mappedRow[$rule->targetField] = $this->valueTransformer->transform($value, $rule);
         }
 
