@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Contracts;
+namespace Medox\DataMapper\Contracts;
 
 interface TransformerInterface
 {

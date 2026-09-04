@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Tests;
+namespace Medox\DataMapper\Tests;
 
-use Elaitech\DataMapper\DataMapperServiceProvider;
+use Medox\DataMapper\DataMapperServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spatie\LaravelData\LaravelDataServiceProvider;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\DTO;
+namespace Medox\DataMapper\DTO;
 
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;

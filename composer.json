@@ -1,12 +1,12 @@
 {
-    "name": "elaitech/data-mapper",
-    "description": "Elaitech DataMapper - A reusable data mapping and transformation component for Laravel.",
+    "name": "medox/data-mapper",
+    "description": "DataMapper - A reusable, framework-agnostic data mapping and transformation component for Laravel.",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Elaitech",
-            "email": "info@elaitech.com"
+            "name": "Mohammed Elabidi",
+            "email": "mohammed.elabidi123@gmail.com"
         }
     ],
     "require": {
@@ -21,18 +21,18 @@
     },
     "autoload": {
         "psr-4": {
-            "Elaitech\\DataMapper\\": "src/"
+            "Medox\\DataMapper\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Elaitech\\DataMapper\\Tests\\": "tests/"
+            "Medox\\DataMapper\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Elaitech\\DataMapper\\DataMapperServiceProvider"
+                "Medox\\DataMapper\\DataMapperServiceProvider"
             ]
         }
     },

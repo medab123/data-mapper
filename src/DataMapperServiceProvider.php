@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper;
+namespace Medox\DataMapper;
 
-use Elaitech\DataMapper\Contracts\DataMapperInterface;
+use Medox\DataMapper\Contracts\DataMapperInterface;
 use Illuminate\Support\ServiceProvider;
 
 final class DataMapperServiceProvider extends ServiceProvider

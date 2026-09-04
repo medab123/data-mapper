@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Contracts;
+namespace Medox\DataMapper\Contracts;
 
-use Elaitech\DataMapper\DTO\DataMappingResultData;
-use Elaitech\DataMapper\DTO\MappingConfigurationData;
+use Medox\DataMapper\DTO\DataMappingResultData;
+use Medox\DataMapper\DTO\MappingConfigurationData;
 
 interface DataMapperInterface
 {

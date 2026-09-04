@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Transformers;
+namespace Medox\DataMapper\Transformers;
 
-use Elaitech\DataMapper\Contracts\TransformerInterface;
+use Medox\DataMapper\Contracts\TransformerInterface;
 
 class BooleanTransformer implements TransformerInterface
 {

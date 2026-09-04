@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper;
+namespace Medox\DataMapper;
 
-use Elaitech\DataMapper\Contracts\TransformerInterface;
-use Elaitech\DataMapper\DTO\MappingRuleData;
-use Elaitech\DataMapper\Transformers\ArrayFirstTransformer;
-use Elaitech\DataMapper\Transformers\ArrayJoinTransformer;
-use Elaitech\DataMapper\Transformers\BooleanTransformer;
-use Elaitech\DataMapper\Transformers\DateTransformer;
-use Elaitech\DataMapper\Transformers\IntegerTransformer;
-use Elaitech\DataMapper\Transformers\LowerTransformer;
-use Elaitech\DataMapper\Transformers\NoneTransformer;
-use Elaitech\DataMapper\Transformers\TrimTransformer;
-use Elaitech\DataMapper\Transformers\UpperTransformer;
+use Medox\DataMapper\Contracts\TransformerInterface;
+use Medox\DataMapper\DTO\MappingRuleData;
+use Medox\DataMapper\Transformers\ArrayFirstTransformer;
+use Medox\DataMapper\Transformers\ArrayJoinTransformer;
+use Medox\DataMapper\Transformers\BooleanTransformer;
+use Medox\DataMapper\Transformers\DateTransformer;
+use Medox\DataMapper\Transformers\IntegerTransformer;
+use Medox\DataMapper\Transformers\LowerTransformer;
+use Medox\DataMapper\Transformers\NoneTransformer;
+use Medox\DataMapper\Transformers\TrimTransformer;
+use Medox\DataMapper\Transformers\UpperTransformer;
 
 final class ValueTransformer
 {

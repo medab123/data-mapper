@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Tests\Unit;
+namespace Medox\DataMapper\Tests\Unit;
 
-use Elaitech\DataMapper\FieldExtractor;
-use Elaitech\DataMapper\Tests\TestCase;
-use Elaitech\DataMapper\Transformers\DateTransformer;
-use Elaitech\DataMapper\Transformers\IntegerTransformer;
+use Medox\DataMapper\FieldExtractor;
+use Medox\DataMapper\Tests\TestCase;
+use Medox\DataMapper\Transformers\DateTransformer;
+use Medox\DataMapper\Transformers\IntegerTransformer;
 
 class TransformersTest extends TestCase
 {

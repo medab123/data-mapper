@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper;
+namespace Medox\DataMapper;
 
 final class FieldExtractor
 {

@@ -1,8 +1,8 @@
-# 📦 Elaitech DataMapper
+# 📦 DataMapper
 
 A reusable **data mapping and transformation** library for Laravel 12. Maps source fields to target fields with chained value transformers, dot-notation and wildcard field extraction, value mapping lookups, and full support for both associative and indexed (header-based) data rows.
 
-> **Namespace:** `Elaitechx\DataMapper`  
+> **Namespace:** `Medox\DataMapper`  
 > **Requires:** PHP 8.4+ · Laravel 12 · `spatie/laravel-data` ^4.19
 
 ---
@@ -40,7 +40,7 @@ In your root `composer.json`, add the package as a path repository:
         }
     ],
     "require": {
-        "elaitech/data-mapper": "@dev"
+        "medox/data-mapper": "@dev"
     }
 }
 ```
@@ -48,7 +48,7 @@ In your root `composer.json`, add the package as a path repository:
 Then install:
 
 ```bash
-composer update elaitech/data-mapper
+composer update medox/data-mapper
 ```
 
 The `DataMapperServiceProvider` is auto-discovered by Laravel. It registers:
@@ -94,9 +94,9 @@ src/
 ## ⚡ Quick Start
 
 ```php
-use Elaitech\DataMapper\Contracts\DataMapperInterface;
-use Elaitech\DataMapper\DTO\MappingConfigurationData;
-use Elaitech\DataMapper\DTO\MappingRuleData;
+use Medox\DataMapper\Contracts\DataMapperInterface;
+use Medox\DataMapper\DTO\MappingConfigurationData;
+use Medox\DataMapper\DTO\MappingRuleData;
 use Spatie\LaravelData\DataCollection;
 
 $mapper = app(DataMapperInterface::class);
@@ -306,7 +306,7 @@ new MappingRuleData(
 Implement the `TransformerInterface`:
 
 ```php
-use Elaitech\DataMapper\Contracts\TransformerInterface;
+use Medox\DataMapper\Contracts\TransformerInterface;
 
 final class SlugTransformer implements TransformerInterface
 {

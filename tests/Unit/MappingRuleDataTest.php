@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Tests\Unit;
+namespace Medox\DataMapper\Tests\Unit;
 
-use Elaitech\DataMapper\DTO\MappingRuleData;
-use Elaitech\DataMapper\Tests\TestCase;
+use Medox\DataMapper\DTO\MappingRuleData;
+use Medox\DataMapper\Tests\TestCase;
 
 class MappingRuleDataTest extends TestCase
 {

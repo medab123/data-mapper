@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper\Tests\Unit;
+namespace Medox\DataMapper\Tests\Unit;
 
-use Elaitech\DataMapper\DataMapperService;
-use Elaitech\DataMapper\DTO\MappingConfigurationData;
-use Elaitech\DataMapper\DTO\MappingRuleData;
-use Elaitech\DataMapper\FieldExtractor;
-use Elaitech\DataMapper\Tests\TestCase;
-use Elaitech\DataMapper\ValueTransformer;
+use Medox\DataMapper\DataMapperService;
+use Medox\DataMapper\DTO\MappingConfigurationData;
+use Medox\DataMapper\DTO\MappingRuleData;
+use Medox\DataMapper\FieldExtractor;
+use Medox\DataMapper\Tests\TestCase;
+use Medox\DataMapper\ValueTransformer;
 use Spatie\LaravelData\DataCollection;
 
 class DataMapperServiceTest extends TestCase

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Elaitech\DataMapper;
+namespace Medox\DataMapper;
 
-use Elaitech\DataMapper\Contracts\DataMapperInterface;
-use Elaitech\DataMapper\DTO\DataMappingResultData;
-use Elaitech\DataMapper\DTO\MappingConfigurationData;
+use Medox\DataMapper\Contracts\DataMapperInterface;
+use Medox\DataMapper\DTO\DataMappingResultData;
+use Medox\DataMapper\DTO\MappingConfigurationData;
 use Spatie\LaravelData\DataCollection;
 
 final readonly class DataMapperService implements DataMapperInterface
