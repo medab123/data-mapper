@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Medox\DataMapper\DTO;
 
+use Medox\DataMapper\ValueTransformer;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -11,10 +12,23 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 #[MapInputName(SnakeCaseMapper::class)]
 final class MappingRuleData extends Data
 {
+    /**
+     * A mapping that names no transformation carries null.
+     *
+     * "This mapping asks for no transformation" and "this mapping asks for the
+     * transformer called none" are the same instruction, and null says it without a
+     * sentinel string every producer has to remember to write. It also matches the
+     * shape a form already posts: an empty string, which Laravel's
+     * ConvertEmptyStringsToNull turns into null before it is ever stored — so a config
+     * saved from a UI hydrates as itself rather than failing on the type.
+     *
+     * {@see ValueTransformer::transform()} skips the transformer
+     * lookup entirely on null, which is what the none transformer did anyway.
+     */
     public function __construct(
         public string $sourceField,
         public string $targetField,
-        public string $transformation = 'none',
+        public ?string $transformation = null,
         #[MapInputName('required')]
         public bool $isRequired = false,
         public mixed $defaultValue = null,

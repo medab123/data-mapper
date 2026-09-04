@@ -38,4 +38,45 @@ class MappingRuleDataTest extends TestCase
 
         $this->assertSame([], $rule->valueMapping);
     }
+
+    public function test_a_mapping_names_no_transformation_by_default(): void
+    {
+        $rule = new MappingRuleData(sourceField: 's', targetField: 't');
+
+        $this->assertNull($rule->transformation);
+    }
+
+    public function test_a_config_saved_with_a_null_transformation_hydrates(): void
+    {
+        // The shape a form produces: an empty string, which ConvertEmptyStringsToNull
+        // turns into null before it is stored. A non-nullable string failed here.
+        $rule = MappingRuleData::from([
+            'source_field' => 'VIN',
+            'target_field' => 'vin',
+            'transformation' => null,
+            'required' => true,
+        ]);
+
+        $this->assertNull($rule->transformation);
+        $this->assertTrue($rule->isRequired);
+    }
+
+    public function test_a_config_that_omits_the_transformation_hydrates(): void
+    {
+        // What a writer that drops null keys produces.
+        $rule = MappingRuleData::from(['source_field' => 'VIN', 'target_field' => 'vin']);
+
+        $this->assertNull($rule->transformation);
+    }
+
+    public function test_a_named_transformation_is_kept(): void
+    {
+        $rule = MappingRuleData::from([
+            'source_field' => 'Make',
+            'target_field' => 'make',
+            'transformation' => 'upper',
+        ]);
+
+        $this->assertSame('upper', $rule->transformation);
+    }
 }

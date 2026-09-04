@@ -473,7 +473,7 @@ Map specific values using a lookup table. Useful for code-to-label conversions:
 new MappingRuleData(
     sourceField: 'condition_code',
     targetField: 'condition',
-    transformation: 'none',
+    // transformation omitted: null means no transformation
     valueMapping: [
         ['from' => '0', 'to' => 'Used'],
         ['from' => '1', 'to' => 'New'],
@@ -624,11 +624,16 @@ A single field mapping rule:
 |---|---|---|---|
 | `sourceField` | `string` | — | Source field name (supports dot/wildcard notation) |
 | `targetField` | `string` | — | Target field name in output |
-| `transformation` | `string` | `'none'` | Transformer name to apply |
+| `transformation` | `?string` | `null` | Transformer name to apply; `null` means none |
 | `isRequired` | `bool` | `false` | Throw if source field is missing |
 | `defaultValue` | `mixed` | `null` | Fallback for empty values |
 | `format` | `?string` | `null` | Format parameter for transformers (e.g., date format) |
 | `valueMapping` | `?array` | `null` | Value lookup table (`[['from' => ..., 'to' => ...]]`) |
+
+> A rule naming no transformation carries `null`, not `'none'`. Both mean "leave the
+> value alone", and `null` is the shape a form already produces — an empty string that
+> `ConvertEmptyStringsToNull` turns into null before it is stored. `transform()` skips the
+> transformer lookup on null. An unregistered name behaves the same way.
 
 ### `DataMappingResultData`
 

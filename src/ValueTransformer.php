@@ -218,8 +218,12 @@ final class ValueTransformer
 
     public function transform($value, MappingRuleData $rule)
     {
-        // Cache transformer lookup to avoid duplicate calls
-        $transformer = $this->getTransformer($rule->transformation);
+        // Cache transformer lookup to avoid duplicate calls. A rule naming no
+        // transformation carries null, which means the same as the none transformer:
+        // leave the value alone.
+        $transformer = $rule->transformation === null
+            ? null
+            : $this->getTransformer($rule->transformation);
         $isArrayTransformer = $transformer !== null && in_array($rule->transformation, self::ARRAY_TRANSFORMERS, true);
 
         // Handle empty values (null, empty string, or empty array)
