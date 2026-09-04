@@ -68,7 +68,7 @@ class ValueTransformerNullTransformationTest extends TestCase
 
         $result = (new DataMapperService(new ValueTransformer, new FieldExtractor))->map(
             new MappingConfigurationData(
-                data: [['VIN' => 'X', 'Make' => 'Ford', 'KMS' => '41,000']],
+                data: [['VIN' => 'X', 'Make' => 'Ford', 'KMS' => '41000']],
                 mappingRules: $rules,
                 headers: [],
             )

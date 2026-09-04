@@ -237,12 +237,22 @@ See [Transformer Groups](#-transformer-groups) for narrowing what a given screen
 | `trim` | Trim | Remove leading/trailing whitespace | ❌ |
 | `upper` | Uppercase | Convert to UPPERCASE | ❌ |
 | `lower` | Lowercase | Convert to lowercase | ❌ |
-| `int` | Integer | Cast to `int` (extracts digits from messy strings; falls back to default) | ❌ |
+| `int` | Integer | Plain `(int)` cast — see the note below | ❌ |
 | `float` | Float | Cast to `float` with precision control | ✅ (decimals) |
 | `bool` | Boolean | Cast to `bool` (handles `"true"`, `"1"`, `"yes"`, etc.) | ❌ |
 | `date` | Date | Parse and reformat dates | ✅ (date format) |
 | `array_first` | Array First | Extract first element from array | ❌ |
 | `array_join` | Array Join | Join array elements with separator | ✅ (separator) |
+
+
+> **`int` is a plain cast, on purpose.** PHP takes the leading numeric run and discards
+> the rest, so `'41,000'` is `41` and `'$31,500'` is `0`. Working out what number the
+> source *meant* would mean guessing what a comma is for — it groups thousands in one
+> locale and marks a decimal in another — so this transformer does not try. A source that
+> writes numbers with separators or symbols wants a format-aware transformer, where the
+> convention is stated rather than assumed. (`float` currently strips non-numeric
+> characters, which handles `'$31,500'` but concatenates every digit in
+> `'$31,500 (was $35,000)'` — a known bug, not a feature to rely on.)
 
 ---
 

@@ -27,7 +27,7 @@ class DataMapperServiceTest extends TestCase
         ]);
 
         $config = new MappingConfigurationData(
-            data: [['Status' => 'Used', 'KMS' => '41,000']],
+            data: [['Status' => 'Used', 'KMS' => '41000']],
             mappingRules: $rules,
             headers: [],
         );

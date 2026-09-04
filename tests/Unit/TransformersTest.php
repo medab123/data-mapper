@@ -11,14 +11,24 @@ use Medox\DataMapper\Transformers\IntegerTransformer;
 
 class TransformersTest extends TestCase
 {
-    public function test_integer_transformer_handles_garbage_and_messy_strings(): void
+    public function test_integer_transformer_is_a_plain_cast(): void
     {
         $int = new IntegerTransformer;
 
         $this->assertSame(5, $int->transform('5'));
-        $this->assertSame(41000, $int->transform('41,000 km'));
+        $this->assertSame(41000, $int->transform('41000'));
         $this->assertSame(0, $int->transform('abc'));
-        $this->assertSame(7, $int->transform('abc', null, 7)); // falls back to default
+        $this->assertSame(0, $int->transform(null));
+
+        // The sharp edges, asserted so they are a decision and not a surprise: PHP
+        // takes the leading numeric run and discards the rest, so a grouped number
+        // loses everything after the separator and a currency symbol loses all of it.
+        $this->assertSame(41, $int->transform('41,000 km'));
+        $this->assertSame(0, $int->transform('$31,500'));
+
+        // The default is not consulted. Casting is total — it always produces an int —
+        // so there is no failure for a default to stand in for.
+        $this->assertSame(0, $int->transform('abc', null, 7));
     }
 
     public function test_date_transformer_returns_default_instead_of_throwing(): void
