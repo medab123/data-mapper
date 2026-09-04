@@ -1,6 +1,6 @@
 # 📦 DataMapper
 
-A reusable **data mapping and transformation** library for Laravel 12. Maps source fields to target fields with chained value transformers, dot-notation and wildcard field extraction, value mapping lookups, and full support for both associative and indexed (header-based) data rows.
+A reusable **data mapping and transformation** library for Laravel 12. Maps source fields to target fields with per-rule value transformers, dot-notation and wildcard field extraction, value mapping lookups, and full support for both associative and indexed (header-based) data rows.
 
 > **Namespace:** `Medox\DataMapper`  
 > **Requires:** PHP 8.4+ · Laravel 12 · `spatie/laravel-data` ^4.19
@@ -36,7 +36,7 @@ A reusable **data mapping and transformation** library for Laravel 12. Maps sour
         { "type": "vcs", "url": "https://github.com/medab123/data-mapper.git" }
     ],
     "require": {
-        "medox/data-mapper": "^0.2"
+        "medox/data-mapper": "^1.0"
     }
 }
 ```
@@ -204,7 +204,7 @@ $extractor->hasField($data, 'user.profile.name');       // true
 
 ### `ValueTransformer`
 
-The transformer registry and execution engine. Manages all registered transformers and applies transformation chains.
+The transformer registry and execution engine. Holds the registered transformers and applies the one a rule names.
 
 ```php
 $transformer = app(ValueTransformer::class);
@@ -231,6 +231,10 @@ See [Transformer Groups](#-transformer-groups) for narrowing what a given screen
 
 ## 🔧 Built-in Transformers
 
+A rule names **one** transformer. There is no chaining: to apply two steps, map through
+an intermediate target or register a transformer that does both.
+
+
 | Name | Label | Description | Requires Format |
 |---|---|---|:---:|
 | `none` | None | Pass-through, no transformation | ❌ |
@@ -238,12 +242,17 @@ See [Transformer Groups](#-transformer-groups) for narrowing what a given screen
 | `upper` | Uppercase | Convert to UPPERCASE | ❌ |
 | `lower` | Lowercase | Convert to lowercase | ❌ |
 | `int` | Integer | Plain `(int)` cast — see the note below | ❌ |
-| `float` | Float | Cast to `float` with precision control | ✅ (decimals) |
+| `float` | Float | Cast to `float`, stripping non-numeric characters | ❌ |
 | `bool` | Boolean | Cast to `bool` (handles `"true"`, `"1"`, `"yes"`, etc.) | ❌ |
 | `date` | Date | Parse to `?DateTimeImmutable`; unparseable yields `null`, never throws | ✅ (date format) |
 | `array_first` | Array First | Extract first element from array | ❌ |
 | `array_join` | Array Join | Join array elements with separator | ✅ (separator) |
 
+
+> **`float` strips non-numeric characters and ignores `$format`.** It handles
+> `'$31,500'` → `31500.0`, but concatenates every digit in
+> `'$31,500 (was $35,000)'` → `3150035000.0`. That is a known bug; do not rely on it
+> for free-text numeric fields.
 
 > **`int` is a plain cast, on purpose.** PHP takes the leading numeric run and discards
 > the rest, so `'41,000'` is `41` and `'$31,500'` is `0`. Working out what number the
@@ -651,7 +660,7 @@ Output from the mapper:
 
 | Property | Type | Description |
 |---|---|---|
-| `data` | `array` | Successfully mapped rows |
+| `mappedData` | `array` | Successfully mapped rows |
 | `errors` | `array` | Per-row error messages |
 
 ---
