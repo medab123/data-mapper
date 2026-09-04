@@ -240,7 +240,7 @@ See [Transformer Groups](#-transformer-groups) for narrowing what a given screen
 | `int` | Integer | Plain `(int)` cast — see the note below | ❌ |
 | `float` | Float | Cast to `float` with precision control | ✅ (decimals) |
 | `bool` | Boolean | Cast to `bool` (handles `"true"`, `"1"`, `"yes"`, etc.) | ❌ |
-| `date` | Date | Parse and reformat dates | ✅ (date format) |
+| `date` | Date | Parse to `?DateTimeImmutable`; unparseable yields `null`, never throws | ✅ (date format) |
 | `array_first` | Array First | Extract first element from array | ❌ |
 | `array_join` | Array Join | Join array elements with separator | ✅ (separator) |
 
