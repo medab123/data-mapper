@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Medox\DataMapper;
 
+use Medox\DataMapper\Contracts\GroupedTransformerInterface;
 use Medox\DataMapper\Contracts\TransformerInterface;
 use Medox\DataMapper\DTO\MappingRuleData;
 use Medox\DataMapper\Transformers\ArrayFirstTransformer;
 use Medox\DataMapper\Transformers\ArrayJoinTransformer;
 use Medox\DataMapper\Transformers\BooleanTransformer;
 use Medox\DataMapper\Transformers\DateTransformer;
+use Medox\DataMapper\Transformers\FloatTransformer;
 use Medox\DataMapper\Transformers\IntegerTransformer;
 use Medox\DataMapper\Transformers\LowerTransformer;
 use Medox\DataMapper\Transformers\NoneTransformer;
@@ -18,8 +20,26 @@ use Medox\DataMapper\Transformers\UpperTransformer;
 
 final class ValueTransformer
 {
+    /**
+     * The group the ten shipped transformers register in.
+     *
+     * They are type-level operations — trim, int, date — that mean the same thing
+     * wherever a mapping runs, so every caller asks for this group alongside its own.
+     */
+    public const string GROUP_CORE = 'core';
+
     /** @var array<string, TransformerInterface> */
     private array $transformers = [];
+
+    /**
+     * Group membership, keyed by transformer name.
+     *
+     * A transformer may belong to several groups; the package never assumes what a
+     * group means, it only answers which transformers are in one.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private array $groups = [];
 
     /** @var array<string> Array transformer names that should handle empty values */
     private const array ARRAY_TRANSFORMERS = ['array_join', 'array_first'];
@@ -30,15 +50,91 @@ final class ValueTransformer
     }
 
     /**
-     * Register a new transformer
+     * Register a transformer, optionally into one or more groups.
+     *
+     * With no group given, a {@see GroupedTransformerInterface} decides for itself
+     * and anything else lands in {@see self::GROUP_CORE}. Registering a name that is
+     * already taken replaces both the transformer and its group membership.
      */
-    public function registerTransformer(TransformerInterface $transformer): void
+    public function registerTransformer(TransformerInterface $transformer, string ...$groups): void
     {
-        $this->transformers[$transformer->getName()] = $transformer;
+        $name = $transformer->getName();
+
+        $this->transformers[$name] = $transformer;
+        $this->groups[$name] = $this->normalizeGroups(
+            $groups !== [] ? $groups : $this->declaredGroups($transformer)
+        );
     }
 
     /**
-     * Get all registered transformers
+     * Register a whole group at once.
+     *
+     * This is the entry point an application uses for transformers the package has
+     * no business knowing about:
+     *
+     *     $valueTransformer->registerGroup('export', [new TransmissionExpandTransformer]);
+     *
+     * @param  iterable<TransformerInterface>  $transformers
+     */
+    public function registerGroup(string $group, iterable $transformers): void
+    {
+        foreach ($transformers as $transformer) {
+            $this->registerTransformer($transformer, $group);
+        }
+    }
+
+    /**
+     * Add already-registered transformers to a further group.
+     *
+     * Names that are not registered are ignored, so a caller can widen a group
+     * without first checking what the package happens to ship.
+     */
+    public function addToGroup(string $group, string ...$names): void
+    {
+        foreach ($names as $name) {
+            if (! isset($this->transformers[$name]) || in_array($group, $this->groups[$name], true)) {
+                continue;
+            }
+
+            $this->groups[$name][] = $group;
+        }
+    }
+
+    /**
+     * Every group that currently holds at least one transformer.
+     *
+     * @return array<int, string>
+     */
+    public function getGroups(): array
+    {
+        $groups = [];
+
+        foreach ($this->groups as $names) {
+            foreach ($names as $group) {
+                $groups[$group] = true;
+            }
+        }
+
+        return array_keys($groups);
+    }
+
+    /**
+     * The groups one transformer belongs to.
+     *
+     * @return array<int, string>
+     */
+    public function getGroupsFor(string $name): array
+    {
+        return $this->groups[$name] ?? [];
+    }
+
+    public function hasGroup(string $group): bool
+    {
+        return in_array($group, $this->getGroups(), true);
+    }
+
+    /**
+     * Get all registered transformers, in every group.
      *
      * @return array<string, TransformerInterface>
      */
@@ -48,14 +144,46 @@ final class ValueTransformer
     }
 
     /**
-     * Get transformer names and labels for UI
+     * The transformers belonging to any of the given groups.
+     *
+     * Passing no group returns everything, which is what a caller that does not
+     * care about grouping gets.
+     *
+     * @return array<string, TransformerInterface>
+     */
+    public function getTransformersInGroups(string ...$groups): array
+    {
+        if ($groups === []) {
+            return $this->transformers;
+        }
+
+        $matched = [];
+
+        foreach ($this->transformers as $name => $transformer) {
+            if (array_intersect($groups, $this->groups[$name] ?? []) !== []) {
+                $matched[$name] = $transformer;
+            }
+        }
+
+        return $matched;
+    }
+
+    /**
+     * Transformer names and labels for UI, narrowed to the given groups.
+     *
+     * A form that offers only the shipped transformers asks for the core group; one
+     * that also offers an application's own asks for both:
+     *
+     *     $valueTransformer->getTransformerOptions(ValueTransformer::GROUP_CORE);
+     *     $valueTransformer->getTransformerOptions(ValueTransformer::GROUP_CORE, 'export');
      *
      * @return array<string, string>
      */
-    public function getTransformerOptions(): array
+    public function getTransformerOptions(string ...$groups): array
     {
         $options = [];
-        foreach ($this->transformers as $name => $transformer) {
+
+        foreach ($this->getTransformersInGroups(...$groups) as $name => $transformer) {
             $options[$name] = $transformer->getLabel();
         }
 
@@ -63,19 +191,26 @@ final class ValueTransformer
     }
 
     /**
-     * Check if a transformer exists
+     * Check if a transformer exists, optionally within given groups.
      */
-    public function hasTransformer(string $name): bool
+    public function hasTransformer(string $name, string ...$groups): bool
     {
-        return isset($this->transformers[$name]);
+        if (! isset($this->transformers[$name])) {
+            return false;
+        }
+
+        return $groups === []
+            || array_intersect($groups, $this->groups[$name] ?? []) !== [];
     }
 
     /**
-     * Get a specific transformer
+     * Get a specific transformer, optionally requiring it to be in given groups.
      */
-    public function getTransformer(string $name): ?TransformerInterface
+    public function getTransformer(string $name, string ...$groups): ?TransformerInterface
     {
-        return $this->transformers[$name] ?? null;
+        return $this->hasTransformer($name, ...$groups)
+            ? $this->transformers[$name]
+            : null;
     }
 
     public function transform($value, MappingRuleData $rule)
@@ -144,17 +279,56 @@ final class ValueTransformer
         return $valueMapping[$value] ?? $value;
     }
 
+    /**
+     * The groups a transformer asks to be in, or the core group when it has no say.
+     *
+     * @return array<int, string>
+     */
+    private function declaredGroups(TransformerInterface $transformer): array
+    {
+        if (! $transformer instanceof GroupedTransformerInterface) {
+            return [self::GROUP_CORE];
+        }
+
+        $declared = $transformer->getGroups();
+
+        return $declared === [] ? [self::GROUP_CORE] : $declared;
+    }
+
+    /**
+     * Trim, drop blanks and de-duplicate group names, falling back to the core group.
+     *
+     * @param  array<int, string>  $groups
+     * @return array<int, string>
+     */
+    private function normalizeGroups(array $groups): array
+    {
+        $normalized = [];
+
+        foreach ($groups as $group) {
+            $group = trim($group);
+
+            if ($group !== '' && ! in_array($group, $normalized, true)) {
+                $normalized[] = $group;
+            }
+        }
+
+        return $normalized === [] ? [self::GROUP_CORE] : $normalized;
+    }
+
     private function registerBuiltInTransformers(): void
     {
-        $this->registerTransformer(new NoneTransformer);
-        $this->registerTransformer(new TrimTransformer);
-        $this->registerTransformer(new UpperTransformer);
-        $this->registerTransformer(new LowerTransformer);
-        $this->registerTransformer(new IntegerTransformer);
-        $this->registerTransformer(new Transformers\FloatTransformer);
-        $this->registerTransformer(new BooleanTransformer);
-        $this->registerTransformer(new DateTransformer);
-        $this->registerTransformer(new ArrayFirstTransformer);
-        $this->registerTransformer(new ArrayJoinTransformer);
+        $this->registerGroup(self::GROUP_CORE, [
+            new NoneTransformer,
+            new TrimTransformer,
+            new UpperTransformer,
+            new LowerTransformer,
+            new IntegerTransformer,
+            new FloatTransformer,
+            new BooleanTransformer,
+            new DateTransformer,
+            new ArrayFirstTransformer,
+            new ArrayJoinTransformer,
+        ]);
     }
 }

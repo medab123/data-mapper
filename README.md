@@ -14,6 +14,7 @@ A reusable **data mapping and transformation** library for Laravel 12. Maps sour
 - [Quick Start](#-quick-start)
 - [Core Components](#-core-components)
 - [Built-in Transformers](#-built-in-transformers)
+- [Transformer Groups](#-transformer-groups)
 - [Field Extraction](#-field-extraction)
 - [Value Mapping](#-value-mapping)
 - [Creating Custom Transformers](#-creating-custom-transformers)
@@ -25,6 +26,19 @@ A reusable **data mapping and transformation** library for Laravel 12. Maps sour
 ---
 
 ## 🚀 Installation
+
+### From GitHub
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/medab123/data-mapper.git" }
+    ],
+    "require": {
+        "medox/data-mapper": "^0.2"
+    }
+}
+```
 
 ### As a local Composer package
 
@@ -53,8 +67,14 @@ composer update medox/data-mapper
 
 The `DataMapperServiceProvider` is auto-discovered by Laravel. It registers:
 - `DataMapperInterface` → `DataMapperService` (binding)
-- `ValueTransformer` — singleton with 10 built-in transformers
+- `ValueTransformer` — singleton with the 10 built-in transformers in the `core` group, plus anything declared in `config/data-mapper.php`
 - `FieldExtractor` — singleton
+
+To register your own transformers, publish the config:
+
+```bash
+php artisan vendor:publish --tag=data-mapper-config
+```
 
 ---
 
@@ -185,12 +205,17 @@ The transformer registry and execution engine. Manages all registered transforme
 ```php
 $transformer = app(ValueTransformer::class);
 
-// Check available transformers
+// Every transformer, in every group
 $transformer->getTransformerOptions(); // ['none' => 'None', 'trim' => 'Trim', ...]
 
-// Register a custom transformer
+// Only the ones in the given groups
+$transformer->getTransformerOptions(ValueTransformer::GROUP_CORE, 'export');
+
+// Register a custom transformer (defaults to the "core" group)
 $transformer->registerTransformer(new MyCustomTransformer());
 ```
+
+See [Transformer Groups](#-transformer-groups) for narrowing what a given screen offers.
 
 **Transformation flow:**
 1. Check if value is empty → return `defaultValue` (unless it's an array transformer)
@@ -214,6 +239,104 @@ $transformer->registerTransformer(new MyCustomTransformer());
 | `date` | Date | Parse and reformat dates | ✅ (date format) |
 | `array_first` | Array First | Extract first element from array | ❌ |
 | `array_join` | Array Join | Join array elements with separator | ✅ (separator) |
+
+---
+
+## 👥 Transformer Groups
+
+The ten built-in transformers are type-level operations — `trim`, `int`, `date` — that mean
+the same thing everywhere. Anything carrying **business meaning** belongs to your application,
+not to this package. Groups are how you keep it there: you name a group, register your own
+transformers into it, and ask for the groups a given screen should offer.
+
+The package never interprets a group name. `import`, `export`, `syndication`, `crm` — it only
+answers which transformers are in one.
+
+### Declaring groups in config
+
+Publish the config and list your classes under the group they belong to:
+
+```bash
+php artisan vendor:publish --tag=data-mapper-config
+```
+
+```php
+// config/data-mapper.php
+return [
+    'groups' => [
+        'import' => [
+            App\Import\Transformers\StockNumberTransformer::class,
+        ],
+        'export' => [
+            App\Export\Transformers\TransmissionExpandTransformer::class,
+        ],
+    ],
+];
+```
+
+Each class is resolved through the container, so it may declare its own dependencies. A class
+that does not implement `TransformerInterface` throws at boot rather than silently doing
+nothing halfway through a feed.
+
+### Registering groups at runtime
+
+```php
+$valueTransformer = app(ValueTransformer::class);
+
+// A whole group at once
+$valueTransformer->registerGroup('export', [new TransmissionExpandTransformer]);
+
+// One transformer, into one or more groups
+$valueTransformer->registerTransformer(new SlugTransformer, 'import', 'export');
+
+// Widen a group with transformers that are already registered
+$valueTransformer->addToGroup('export', 'trim', 'upper');
+```
+
+### Letting a transformer choose its own group
+
+Implement `GroupedTransformerInterface` and the registration site no longer has to repeat the
+group name:
+
+```php
+use Medox\DataMapper\Contracts\GroupedTransformerInterface;
+
+final class TransmissionExpandTransformer implements GroupedTransformerInterface
+{
+    public function getGroups(): array
+    {
+        return ['export'];
+    }
+
+    // ... getName(), getLabel(), getDescription(), transform(), requiresFormat()
+}
+```
+
+A group passed explicitly to `registerTransformer()` — or listed in config — always wins over
+the one the class declares.
+
+### Querying groups
+
+```php
+// What a UI should offer
+$valueTransformer->getTransformerOptions(ValueTransformer::GROUP_CORE);            // built-ins only
+$valueTransformer->getTransformerOptions(ValueTransformer::GROUP_CORE, 'export');  // built-ins + export
+$valueTransformer->getTransformerOptions();                                        // everything
+
+// Introspection
+$valueTransformer->getGroups();                              // ['core', 'import', 'export']
+$valueTransformer->getGroupsFor('transmission_expand');      // ['export']
+$valueTransformer->hasGroup('export');                       // true
+$valueTransformer->getTransformersInGroups('export');        // array<string, TransformerInterface>
+
+// Lookups can require a group
+$valueTransformer->hasTransformer('transmission_expand', 'export');   // true
+$valueTransformer->hasTransformer('transmission_expand', 'core');     // false
+```
+
+> **Groups describe what a UI should offer, not what a pipeline may run.**
+> `ValueTransformer::transform()` resolves a rule's transformer by name across every group, so
+> a stored mapping keeps working even if a screen would no longer offer that transformer.
 
 ---
 
@@ -358,6 +481,16 @@ public function boot(): void
 }
 ```
 
+A transformer that carries business meaning should go in a group of its own rather than in
+`core` — see [Transformer Groups](#-transformer-groups). The declarative route is
+`config/data-mapper.php`:
+
+```php
+'groups' => [
+    'import' => [App\Import\Transformers\SlugTransformer::class],
+],
+```
+
 ---
 
 ## 📋 DTOs
@@ -420,6 +553,19 @@ interface TransformerInterface
     public function requiresFormat(): bool;
 }
 ```
+
+
+### `GroupedTransformerInterface`
+
+Optional. Extends `TransformerInterface` with a single method so a transformer can name the
+groups it belongs to:
+
+```php
+/** @return array<int, string> */
+public function getGroups(): array;
+```
+
+An explicit group at the registration site, or in `config/data-mapper.php`, overrides it.
 
 ---
 
