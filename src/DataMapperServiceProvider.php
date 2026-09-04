@@ -6,6 +6,8 @@ namespace Medox\DataMapper;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Medox\DataMapper\ColumnMatchers\RelaxedColumnMatcher;
+use Medox\DataMapper\Contracts\ColumnMatcherInterface;
 use Medox\DataMapper\Contracts\DataMapperInterface;
 use Medox\DataMapper\Contracts\TransformerInterface;
 
@@ -32,7 +34,25 @@ final class DataMapperServiceProvider extends ServiceProvider
             return $valueTransformer;
         });
 
-        $this->app->singleton(FieldExtractor::class, static fn (): FieldExtractor => new FieldExtractor);
+        $this->app->singleton(ColumnMatcherInterface::class, function (Application $app): ColumnMatcherInterface {
+            $matcher = $app['config']->get('data-mapper.column_matcher', RelaxedColumnMatcher::class);
+
+            $resolved = is_string($matcher) ? $app->make($matcher) : $matcher;
+
+            if (! $resolved instanceof ColumnMatcherInterface) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Column matcher [%s] configured in data-mapper.column_matcher must implement %s.',
+                    is_object($matcher) ? $matcher::class : (string) $matcher,
+                    ColumnMatcherInterface::class,
+                ));
+            }
+
+            return $resolved;
+        });
+
+        $this->app->singleton(FieldExtractor::class, static fn (Application $app): FieldExtractor => new FieldExtractor(
+            $app->make(ColumnMatcherInterface::class),
+        ));
     }
 
     public function boot(): void

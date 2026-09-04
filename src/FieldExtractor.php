@@ -4,8 +4,21 @@ declare(strict_types=1);
 
 namespace Medox\DataMapper;
 
+use Medox\DataMapper\ColumnMatchers\RelaxedColumnMatcher;
+use Medox\DataMapper\Contracts\ColumnMatcherInterface;
+
 final class FieldExtractor
 {
+    /**
+     * The matcher decides which key of a row a configured field name means.
+     *
+     * Defaulted so `new FieldExtractor` keeps working; the container injects
+     * whatever `data-mapper.column_matcher` names.
+     */
+    public function __construct(
+        private readonly ColumnMatcherInterface $columnMatcher = new RelaxedColumnMatcher,
+    ) {}
+
     /**
      * Extract value from data using dot notation for nested fields
      */
@@ -13,19 +26,24 @@ final class FieldExtractor
     {
         // Handle direct field access
         if (! str_contains($fieldPath, '.')) {
-            return $data[$fieldPath] ?? null;
+            $key = $this->columnMatcher->matchKey($data, $fieldPath);
+
+            return $key === null ? null : $data[$key];
         }
 
-        // Handle nested field access with dot notation
+        // Handle nested field access with dot notation. Every segment is matched
+        // the same way, so a nested object's casing is forgiven too.
         $keys = explode('.', $fieldPath);
         $value = $data;
 
         foreach ($keys as $key) {
-            if (is_array($value) && array_key_exists($key, $value)) {
-                $value = $value[$key];
-            } else {
+            $matched = is_array($value) ? $this->columnMatcher->matchKey($value, $key) : null;
+
+            if ($matched === null) {
                 return null;
             }
+
+            $value = $value[$matched];
         }
 
         return $value;

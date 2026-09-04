@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Medox\DataMapper;
 
+use Medox\DataMapper\ColumnMatchers\RelaxedColumnMatcher;
+use Medox\DataMapper\Contracts\ColumnMatcherInterface;
 use Medox\DataMapper\Contracts\DataMapperInterface;
 use Medox\DataMapper\DTO\DataMappingResultData;
 use Medox\DataMapper\DTO\MappingConfigurationData;
@@ -11,9 +13,17 @@ use Spatie\LaravelData\DataCollection;
 
 final readonly class DataMapperService implements DataMapperInterface
 {
+    /**
+     * The matcher here resolves positional headers; the one inside FieldExtractor
+     * resolves keyed rows. Resolve this service from the container and both are the
+     * single instance named by `data-mapper.column_matcher`. Construct it by hand and
+     * you are responsible for passing the same policy to both, or a source read
+     * positionally will match by different rules than one read by key.
+     */
     public function __construct(
         private ValueTransformer $valueTransformer,
-        private FieldExtractor $fieldExtractor
+        private FieldExtractor $fieldExtractor,
+        private ColumnMatcherInterface $columnMatcher = new RelaxedColumnMatcher,
     ) {}
 
     public function map(MappingConfigurationData $config): DataMappingResultData
@@ -100,8 +110,6 @@ final readonly class DataMapperService implements DataMapperInterface
 
     private function findHeaderIndex(array $headers, string $fieldName): ?int
     {
-        $index = array_search($fieldName, $headers, true);
-
-        return $index !== false ? $index : null;
+        return $this->columnMatcher->matchIndex($headers, $fieldName);
     }
 }

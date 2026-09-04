@@ -15,6 +15,7 @@ A reusable **data mapping and transformation** library for Laravel 12. Maps sour
 - [Core Components](#-core-components)
 - [Built-in Transformers](#-built-in-transformers)
 - [Transformer Groups](#-transformer-groups)
+- [Column Matching](#-column-matching)
 - [Field Extraction](#-field-extraction)
 - [Value Mapping](#-value-mapping)
 - [Creating Custom Transformers](#-creating-custom-transformers)
@@ -68,7 +69,8 @@ composer update medox/data-mapper
 The `DataMapperServiceProvider` is auto-discovered by Laravel. It registers:
 - `DataMapperInterface` → `DataMapperService` (binding)
 - `ValueTransformer` — singleton with the 10 built-in transformers in the `core` group, plus anything declared in `config/data-mapper.php`
-- `FieldExtractor` — singleton
+- `ColumnMatcherInterface` — singleton, from `data-mapper.column_matcher`
+- `FieldExtractor` — singleton, wired to that matcher
 
 To register your own transformers, publish the config:
 
@@ -340,6 +342,67 @@ $valueTransformer->hasTransformer('transmission_expand', 'core');     // false
 
 ---
 
+## 🔤 Column Matching
+
+A mapping rule names a column — `dealer id`, `stocknumber`. The source exports whatever it
+exports — `Dealer ID`, `StockNumber`. With a byte-exact lookup those are different columns
+and the value comes back `null`, **with no error**, because a rule that is not required is
+allowed to find nothing. A configuration can name twenty columns, match none of them, and
+map blank rows while reporting success.
+
+`RelaxedColumnMatcher` is the default. An exact key always wins; only when none exists is
+the name compared with letter case, surrounding whitespace and a byte-order mark folded
+away:
+
+```php
+$row = ['Dealer ID' => 7, "\u{FEFF}StockNumber" => 'A1'];
+
+$extractor->extractValue($row, 'dealer id');    // 7
+$extractor->extractValue($row, 'stocknumber');  // 'A1'
+```
+
+It works the same for positional headers (`headers: ['VIN', 'Dealer ID']` with list-shaped
+rows) and for every segment of a nested path (`vehicle.engine.cylinders` finds
+`Vehicle.Engine.Cylinders`).
+
+**Why this is safe to have on:** the relaxed pass runs only when no exact key exists, so it
+can never change a lookup that already found a value — it can only rescue one that found
+nothing. A source carrying both `price` and `Price` keeps them apart for whichever one was
+configured.
+
+**What it will not do:** guess across separators. `stock_number` and `Stock Number` stay
+different columns, because that would start mapping fields nobody asked for.
+
+### Choosing a policy
+
+```php
+// config/data-mapper.php
+'column_matcher' => Medox\DataMapper\ColumnMatchers\RelaxedColumnMatcher::class, // default
+// 'column_matcher' => Medox\DataMapper\ColumnMatchers\ExactColumnMatcher::class, // byte-for-byte
+```
+
+To move the line between formatting and identity, subclass and override `normalize()`:
+
+```php
+final class SeparatorInsensitiveMatcher extends RelaxedColumnMatcher
+{
+    protected function normalize(string $column): string
+    {
+        return str_replace([' ', '_', '-'], '', parent::normalize($column));
+    }
+}
+```
+
+`normalize()` results are cached, so an override must be a pure function of its argument.
+Anything implementing `ColumnMatcherInterface` is also accepted, if folding a name is not
+how your sources work at all.
+
+> Resolve `DataMapperService` from the container and the configured matcher is used for
+> both keyed rows and positional headers. Construct it by hand and you must pass the same
+> matcher to `FieldExtractor` and to `DataMapperService` yourself.
+
+---
+
 ## 🗺 Field Extraction
 
 ### Dot Notation
@@ -554,6 +617,16 @@ interface TransformerInterface
 }
 ```
 
+
+### `ColumnMatcherInterface`
+
+```php
+interface ColumnMatcherInterface
+{
+    public function matchKey(array $row, string $column): string|int|null;
+    public function matchIndex(array $headers, string $column): ?int;
+}
+```
 
 ### `GroupedTransformerInterface`
 
