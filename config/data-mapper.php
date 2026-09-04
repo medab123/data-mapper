@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Medox\DataMapper\ColumnMatchers\RelaxedColumnMatcher;
+use Medox\DataMapper\Normalizers\FormattingNormalizer;
+use Medox\DataMapper\ValueMatchers\RelaxedValueMatcher;
 
 return [
 
@@ -30,6 +32,49 @@ return [
     */
 
     'column_matcher' => RelaxedColumnMatcher::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Normalizer
+    |--------------------------------------------------------------------------
+    |
+    | Folds a string down to the part that carries its identity. This is the one
+    | decision shared by column matching and value mapping: change it here and both
+    | move together, which is the point — two answers to "what is formatting" drift
+    | apart, and the drift is invisible until something silently fails to match.
+    |
+    | FormattingNormalizer (default) treats letter case, surrounding whitespace and a
+    | byte-order mark as formatting. Nothing else: "stock_number" and "Stock Number"
+    | stay different names, because guessing across separators would start matching
+    | things nobody wrote.
+    |
+    | Any class implementing NormalizerInterface works here. It must be a pure
+    | function of its argument, because results are cached.
+    |
+    */
+
+    'normalizer' => FormattingNormalizer::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Value matching
+    |--------------------------------------------------------------------------
+    |
+    | Decides how loosely a source's value may match a key in a rule's value mapping
+    | table. The mirror of column matching, with the provenance reversed: there the
+    | probe is your column name, here it is the source's value.
+    |
+    |   RelaxedValueMatcher (default) — an exact key always wins; only when none
+    |     exists is the value compared through the normalizer above. Keys that collide
+    |     once folded are DROPPED rather than one shadowing the other: two entries
+    |     differing only in case were both typed by you, in one table, so you plainly
+    |     meant them to be distinct.
+    |
+    |   ExactValueMatcher — byte-for-byte. "Used" does not answer for "USED".
+    |
+    */
+
+    'value_matcher' => RelaxedValueMatcher::class,
 
     /*
     |--------------------------------------------------------------------------

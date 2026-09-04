@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Medox\DataMapper\ColumnMatchers;
 
 use Medox\DataMapper\Contracts\ColumnMatcherInterface;
+use Medox\DataMapper\Contracts\NormalizerInterface;
+use Medox\DataMapper\Normalizers\FormattingNormalizer;
 
 /**
  * Matches a configured column against a row, forgiving formatting but not identity.
@@ -49,6 +51,10 @@ class RelaxedColumnMatcher implements ColumnMatcherInterface
      * A tabular source needs one entry per column and never reaches the limit.
      */
     private const int FOLD_CACHE_LIMIT = 4096;
+
+    public function __construct(
+        private readonly NormalizerInterface $normalizer = new FormattingNormalizer,
+    ) {}
 
     public function matchKey(array $row, string $column): string|int|null
     {
@@ -97,12 +103,13 @@ class RelaxedColumnMatcher implements ColumnMatcherInterface
     /**
      * Fold a column name down to the part that carries its identity.
      *
-     * Override to widen or narrow what your project treats as formatting. Results are
-     * cached by the caller, so an override must be a pure function of its argument.
+     * Prefer configuring `data-mapper.normalizer`, which moves the line for value
+     * mapping too. Override here only when column names need a rule of their own.
+     * Results are cached, so an override must be a pure function of its argument.
      */
     protected function normalize(string $column): string
     {
-        return mb_strtolower(trim(str_replace("\u{FEFF}", '', $column)));
+        return $this->normalizer->normalize($column);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Medox\DataMapper;
 
 use Medox\DataMapper\Contracts\GroupedTransformerInterface;
 use Medox\DataMapper\Contracts\TransformerInterface;
+use Medox\DataMapper\Contracts\ValueMatcherInterface;
 use Medox\DataMapper\DTO\MappingRuleData;
 use Medox\DataMapper\Transformers\ArrayFirstTransformer;
 use Medox\DataMapper\Transformers\ArrayJoinTransformer;
@@ -17,6 +18,7 @@ use Medox\DataMapper\Transformers\LowerTransformer;
 use Medox\DataMapper\Transformers\NoneTransformer;
 use Medox\DataMapper\Transformers\TrimTransformer;
 use Medox\DataMapper\Transformers\UpperTransformer;
+use Medox\DataMapper\ValueMatchers\RelaxedValueMatcher;
 
 final class ValueTransformer
 {
@@ -44,8 +46,9 @@ final class ValueTransformer
     /** @var array<string> Array transformer names that should handle empty values */
     private const array ARRAY_TRANSFORMERS = ['array_join', 'array_first'];
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly ValueMatcherInterface $valueMatcher = new RelaxedValueMatcher,
+    ) {
         $this->registerBuiltInTransformers();
     }
 
@@ -262,21 +265,27 @@ final class ValueTransformer
 
     /**
      * Apply value mapping to a single value or array of values.
+     *
+     * How loosely a value may match a table's key is the matcher's decision, not this
+     * class's. A multi-value extraction is mapped element by element, because a table
+     * describes single values.
+     *
+     * @param  array<array-key, mixed>|null  $valueMapping
      */
     private function applyValueMapping(mixed $value, ?array $valueMapping): mixed
     {
-        if ($valueMapping === null) {
+        if ($valueMapping === null || $valueMapping === []) {
             return $value;
         }
 
         if (is_array($value)) {
             return array_map(
-                fn ($item) => $valueMapping[$item] ?? $item,
+                fn (mixed $item): mixed => $this->valueMatcher->matchValue($item, $valueMapping),
                 $value
             );
         }
 
-        return $valueMapping[$value] ?? $value;
+        return $this->valueMatcher->matchValue($value, $valueMapping);
     }
 
     /**

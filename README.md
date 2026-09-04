@@ -69,7 +69,9 @@ composer update medox/data-mapper
 The `DataMapperServiceProvider` is auto-discovered by Laravel. It registers:
 - `DataMapperInterface` → `DataMapperService` (binding)
 - `ValueTransformer` — singleton with the 10 built-in transformers in the `core` group, plus anything declared in `config/data-mapper.php`
+- `NormalizerInterface` — singleton, from `data-mapper.normalizer`
 - `ColumnMatcherInterface` — singleton, from `data-mapper.column_matcher`
+- `ValueMatcherInterface` — singleton, from `data-mapper.value_matcher`
 - `FieldExtractor` — singleton, wired to that matcher
 
 To register your own transformers, publish the config:
@@ -381,21 +383,32 @@ different columns, because that would start mapping fields nobody asked for.
 // 'column_matcher' => Medox\DataMapper\ColumnMatchers\ExactColumnMatcher::class, // byte-for-byte
 ```
 
-To move the line between formatting and identity, subclass and override `normalize()`:
+### The normalizer is one decision, shared
+
+What counts as formatting is configured **once** and used by both column matching and
+[value mapping](#-value-mapping), so the two can never drift apart:
 
 ```php
-final class SeparatorInsensitiveMatcher extends RelaxedColumnMatcher
+// config/data-mapper.php
+'normalizer' => Medox\DataMapper\Normalizers\FormattingNormalizer::class, // default
+```
+
+To move the line, implement `NormalizerInterface`:
+
+```php
+final class SeparatorInsensitiveNormalizer implements NormalizerInterface
 {
-    protected function normalize(string $column): string
+    public function normalize(string $value): string
     {
-        return str_replace([' ', '_', '-'], '', parent::normalize($column));
+        return str_replace([' ', '_', '-'], '', mb_strtolower(trim($value)));
     }
 }
 ```
 
-`normalize()` results are cached, so an override must be a pure function of its argument.
-Anything implementing `ColumnMatcherInterface` is also accepted, if folding a name is not
-how your sources work at all.
+Results are cached, so an implementation must be a pure function of its argument. If only
+*column names* need a rule of their own, `RelaxedColumnMatcher::normalize()` is still
+`protected` and overridable. Anything implementing `ColumnMatcherInterface` is also
+accepted, if folding a name is not how your sources work at all.
 
 > Resolve `DataMapperService` from the container and the configured matcher is used for
 > both keyed rows and positional headers. Construct it by hand and you must pass the same
@@ -483,6 +496,41 @@ new MappingRuleData(
     valueMapping: [['from' => '1', 'to' => 'active'], ['from' => '0', 'to' => 'inactive']],
 );
 // Input: '1' → mapped to 'active' → transformed to 'ACTIVE'
+```
+
+### How loosely a value matches
+
+A mapping is a statement about what a source's value **means**, and `" Used"` does not mean
+something different from `"Used"`. With a byte-exact lookup it did: a hand-written
+`Used → used` silently missed every row a provider happened to send as `USED`, the value
+reached the target un-normalised, and the field then failed its cast for the whole file.
+
+`RelaxedValueMatcher` is the default. An exact key always wins; only when none exists is the
+value compared through the [normalizer](#-column-matching):
+
+```php
+valueMapping: [['from' => 'Used', 'to' => 'used']]
+
+// 'USED'      → 'used'
+// '  used  '  → 'used'
+// 'Salvage'   → 'Salvage'   (no rule matches: passed through unchanged)
+```
+
+**Colliding keys are dropped, not shadowed.** If you write both `Used → second-hand` and
+`USED → pre-owned`, you plainly meant them apart — you typed both, in one table. Each still
+answers for its own exact spelling, but a third spelling matching neither gets no answer
+rather than an arbitrary winner. This is the deliberate difference from column matching,
+where colliding keys are an accident of the data and the first one wins.
+
+**Only strings and integers are mapped.** `null` means absent, not "matches the empty
+key"; an array is a multi-value extraction and is mapped element by element; and folding a
+float or bool into a key would invent a numeric equivalence that belongs to a transformer,
+not to a lookup.
+
+```php
+// config/data-mapper.php
+'value_matcher' => Medox\DataMapper\ValueMatchers\RelaxedValueMatcher::class, // default
+// 'value_matcher' => Medox\DataMapper\ValueMatchers\ExactValueMatcher::class, // byte-for-byte
 ```
 
 ---
@@ -625,6 +673,24 @@ interface ColumnMatcherInterface
 {
     public function matchKey(array $row, string $column): string|int|null;
     public function matchIndex(array $headers, string $column): ?int;
+}
+```
+
+### `ValueMatcherInterface`
+
+```php
+interface ValueMatcherInterface
+{
+    public function matchValue(mixed $value, array $valueMapping): mixed;
+}
+```
+
+### `NormalizerInterface`
+
+```php
+interface NormalizerInterface
+{
+    public function normalize(string $value): string;
 }
 ```
 
